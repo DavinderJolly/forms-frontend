@@ -7,7 +7,9 @@ import RenderedQuestion from "../../components/Question";
 
 export enum FormState {
     SENDING = "sending",
-    SENT = "sent"
+    SENT = "sent",
+    VALIDATION_ERROR = "validation_error",
+    UNKNOWN_ERROR = "error"
 }
 
 
@@ -25,7 +27,7 @@ export default async function handleSubmit(
     formID: string,
     questions: RenderedQuestion[],
     refMap: Map<string, React.RefObject<RenderedQuestion>>,
-    setState: (value: string) => void
+    setState: (state: string) => void
 ): Promise<void> {
     event.preventDefault();
 
@@ -34,8 +36,25 @@ export default async function handleSubmit(
     }
 
     setState(FormState.SENDING);
-    await ApiClient.post(`forms/submit/${formID}`, {response: parseAnswers(questions)});
-    setState(FormState.SENT);
+    await ApiClient.post(`forms/submit/${formID}`, {response: parseAnswers(questions)})
+        .then(() => setState(FormState.SENT))
+        .catch(error => {
+            if (!error.response) {
+                setState(FormState.UNKNOWN_ERROR);
+                return;
+            }
+
+            switch (error.response.status) {
+                case 422:
+                    setState(FormState.VALIDATION_ERROR);
+                    break;
+
+                case 500:
+                default:
+                    setState(FormState.UNKNOWN_ERROR);
+                    console.log(error.response);
+            }
+        });
 }
 
 
@@ -85,7 +104,7 @@ function validate(questions: RenderedQuestion[], refMap: Map<string, React.RefOb
 /**
  * Parse user answers into a valid submission.
  */
-function parseAnswers(questions: RenderedQuestion[]): { [key: string]: unknown } {
+export function parseAnswers(questions: RenderedQuestion[]): { [key: string]: unknown } {
     const answers: { [key: string]: unknown } = {};
 
     questions.forEach(prop => {

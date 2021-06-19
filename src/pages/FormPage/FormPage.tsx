@@ -18,6 +18,7 @@ import { unselectable }  from "../../commonStyles";
 import Navigation from "./Navigation";
 import handleSubmit, { FormState } from "./submit";
 import Success from "./SuccessPage";
+import ErrorPage from "./ErrorPage";
 
 
 interface PathParams {
@@ -90,6 +91,10 @@ function FormPage(): JSX.Element {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return <RenderedQuestion ref={questionRef} focus_ref={createRef<any>()} scroll_ref={createRef<HTMLDivElement>()} question={question} public_state={new Map()} key={index + Date.now()}/>;
     });
+
+    if (state === FormState.UNKNOWN_ERROR) {
+        return <ErrorPage form={form} questions={questions} message="An unknown error occurred, please contact the forms team or try again."/>;
+    }
 
     const open: boolean = form.features.includes(FormFeatures.Open);
     const require_auth: boolean = form.features.includes(FormFeatures.RequiresLogin);

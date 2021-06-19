@@ -50,7 +50,7 @@ export default class Navigation extends React.Component<NavigationProps> {
       }
     `;
 
-    separatorStyles = css`
+    static separatorStyles = css`
       height: 0;
       display: none;
 
@@ -99,7 +99,7 @@ export default class Navigation extends React.Component<NavigationProps> {
                 <div className={ "return_button" + (this.props.form_state ? "" : " closed") }>
                     <Link to="/" css={Navigation.returnStyles}>Return Home</Link>
                 </div>
-                <br css={this.separatorStyles}/>
+                <br css={Navigation.separatorStyles}/>
                 { submit }
             </div>
         );
