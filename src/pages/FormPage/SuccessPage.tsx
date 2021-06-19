@@ -23,11 +23,19 @@ const divStyle = css`
 `;
 
 export default function Success(props: SuccessProps): JSX.Element {
+    let submitted_text;
+    if (props.form.submitted_text) {
+        submitted_text = props.form.submitted_text.split("\n").map((line, index) => <span key={index}>{line}<br/></span>);
+        submitted_text.push(<span key={submitted_text.length - 1}>{submitted_text.pop()?.props.children[0]}</span>);
+    } else {
+        submitted_text = "Thanks for your response!";
+    }
+
     return (
         <div>
             <HeaderBar title={props.form.name} description={props.form.description}/>
             <div css={[unselectable, Navigation.containerStyles, divStyle]}>
-                <h3 css={thanksStyle}>{props.form.submitted_text ?? "Thanks for your response!"}</h3>
+                <h3 css={thanksStyle}>{submitted_text}</h3>
                 <div className={"return_button closed"}>
                     <Link to="/" css={Navigation.returnStyles}>Return Home</Link>
                 </div>

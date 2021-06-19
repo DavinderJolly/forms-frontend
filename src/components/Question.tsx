@@ -28,6 +28,8 @@ class RenderedQuestion extends React.Component<QuestionProp> {
         super(props);
         if (props.question.type === QuestionType.TextArea) {
             this.handler = this.text_area_handler.bind(this);
+        } else if (props.question.type === QuestionType.Code) {
+            this.handler = this.code_field_handler.bind(this);
         } else {
             this.handler = this.normal_handler.bind(this);
         }
@@ -46,8 +48,8 @@ class RenderedQuestion extends React.Component<QuestionProp> {
         this.props.public_state.set(target, value);
     }
 
-    // This is here to allow dynamic selection between the general handler, and the textarea handler.
-    handler(_: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void {} // eslint-disable-line
+    // This is here to allow dynamic selection between the general handler, textarea, and code field handlers.
+    handler(_: ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | string): void {} // eslint-disable-line
 
     blurHandler(): void {
         if (this.props.question.required) {
@@ -132,6 +134,21 @@ class RenderedQuestion extends React.Component<QuestionProp> {
         this.setPublicState("value", event.target.value);
     }
 
+    code_field_handler(newContent: string): void {
+        // If content stays same (what means that user have just zoomed in), then don't validate.
+        let validate = false;
+        if (newContent != this.props.public_state.get("value")) {
+            validate = true;
+        }
+
+        this.setPublicState("value", newContent);
+
+        // CodeMirror don't provide onBlur event, so we have to run validation here.
+        if (validate) {
+            this.blurHandler();
+        }
+    }
+
     validateField(): void {
         if (!this.props.question.required) {
             return;
@@ -142,6 +159,7 @@ class RenderedQuestion extends React.Component<QuestionProp> {
         switch (this.props.question.type) {
             case QuestionType.TextArea:
             case QuestionType.ShortText:
+            case QuestionType.Code:
                 if (this.props.public_state.get("value") === "") {
                     invalid = true;
                 }
@@ -205,6 +223,9 @@ class RenderedQuestion extends React.Component<QuestionProp> {
     render(): JSX.Element {
         const question = this.props.question;
 
+        const name = question.name.split("\n").map((line, index) => <span key={index}>{line}<br/></span>);
+        name.push(<span key={name.length - 1}>{name.pop()?.props.children[0]}</span>);
+
         if (question.type === QuestionType.Section) {
             const styles = css`
               h1 {
@@ -227,18 +248,24 @@ class RenderedQuestion extends React.Component<QuestionProp> {
               }
             `;
 
+            const data = question.data["text"];
+            let text;
+
+            if (data && typeof(data) === "string") {
+                text = data.split("\n").map((line, index) => <h3 css={selectable} key={index}>{line}<br/></h3>);
+                text.push(<h3 css={selectable} key={data.length - 1}>{text.pop()?.props.children[0]}</h3>);
+            } else {
+                text = "";
+            }
+
             return <div css={styles}>
-                <h1 css={[selectable, css`line-height: 2.5rem;`]}>{question.name}</h1>
-                { question.data["text"] ? <h3 css={selectable}>{question.data["text"]}</h3> : "" }
+                <h1 css={[selectable, css`line-height: 2.5rem;`]}>{name}</h1>
+                { text }
                 <hr css={css`color: gray; margin: 3rem 0;`}/>
             </div>;
 
         } else {
             const requiredStarStyles = css`
-              span {
-                display: none;
-              }
-
               .required {
                 display: inline-block;
                 position: relative;
@@ -261,7 +288,7 @@ class RenderedQuestion extends React.Component<QuestionProp> {
 
             return <div ref={this.props.scroll_ref}>
                 <h2 css={[selectable, requiredStarStyles]}>
-                    {question.name}<span className={question.required ? "required" : ""}>*</span>
+                    {name}<span css={css`display: none;`} className={question.required ? "required" : ""}>*</span>
                 </h2>
                 { create_input(this.props, this.handler, this.blurHandler, this.props.focus_ref) }
                 <ErrorMessage show={!valid} message={error} />
